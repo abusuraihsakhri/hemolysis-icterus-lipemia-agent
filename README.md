@@ -1,104 +1,141 @@
-# HIL — Hemolysis, Icterus, Lipemia Index Interpreter
+# Hemolysis Icterus Lipemia Agent
 
-A zero-dependency Python tool for interpreting spectrophotometric HIL interference indices and determining their impact on clinical analyte results.
+> **Domain:** Clinical Decision Support & Biomedical Computing  
+> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks`
 
-## HIL Index Classification
+<div align="center">
 
-### Hemolysis (H-index)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
+![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
+![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
 
-| Level | Range | Clinical Action |
-|-------|-------|----------------|
-| Normal | 0 – 49 | No interference expected |
-| Mild | 50 – 100 | May affect sensitive analytes |
-| Moderate | 100 – 250 | Significant interference likely |
-| Severe | > 250 | Reject for most affected analytes |
+</div>
 
-### Icterus (I-index)
+---
 
-| Level | Range | Clinical Action |
-|-------|-------|----------------|
-| Normal | 0 – 19 | No interference expected |
-| Mild | 20 – 40 | Monitor affected analytes |
-| Moderate | 40 – 60 | Flag or reject affected analytes |
-| Severe | > 60 | Reject for most affected analytes |
+## 📖 What It Does
 
-### Lipemia (L-index)
+**Hemolysis Icterus Lipemia Agent** is an advanced analytical and computational platform implementing Spectrophotometric HIL-Index Interference Arbiter.
 
-| Level | Range | Clinical Action |
-|-------|-------|----------------|
-| Normal | 0 – 99 | No interference expected |
-| Mild | 100 – 200 | May affect turbidimetric assays |
-| Moderate | 200 – 500 | Significant interference |
-| Severe | > 500 | Reject for most affected analytes |
+HIL (Hemolysis, Icterus, Lipemia) Index Interpreter.
 
-## Affected Analytes
+Interprets spectrophotometric interference indices and determines
+their impact on clinical analyte results.
 
-### Hemolysis Affects
-| Analyte | Direction | Mild | Moderate | Severe |
-|---------|-----------|------|----------|--------|
-| Potassium | ↑ Falsely elevated | Flag | Reject | Reject |
-| LDH | ↑ Falsely elevated | Flag | Reject | Reject |
-| AST | ↑ Falsely elevated | Accept | Flag | Reject |
-| ALT | ↑ Falsely elevated | Accept | Accept | Flag |
-| Bilirubin | ↓ Falsely decreased | Accept | Flag | Reject |
-| Haptoglobin | ↓ Falsely decreased | Flag | Reject | Reject |
-| Troponin | ↑ Falsely elevated | Accept | Flag | Reject |
+HIL Index values (semi-quantitative, 0-100+ scale):
+  Hemolysis (H-index):
+    Normal: 0-49, Mild: 50-100, Moderate: 100-250, Severe: >250
+  Icterus (I-index):
+    Normal: 0-19, Mild: 20-40, Moderate: 40-60, Severe: >60
+  Lipemia (L-index):
+    Normal: 0-99, Mild: 100-200, Moderate: 200-500, Severe: >500
 
-### Icterus Affects
-| Analyte | Direction | Mild | Moderate | Severe |
-|---------|-----------|------|----------|--------|
-| Creatinine (Jaffe) | ↑ Falsely elevated | Accept | Flag | Reject |
-| Triglycerides | ↑ Falsely elevated | Accept | Flag | Reject |
-| Uric acid | ↑ Falsely elevated | Accept | Flag | Reject |
+Affected analytes by HIL interference:
+  Hemolysis affects: K+, LDH, AST, ALT, bilirubin, haptoglobin, troponin
+  Icterus affects: creatinine (Jaffe), triglycerides, uric acid
+  Lipemia affects: sodium (indirect), triglycerides, total protein, amylase
 
-### Lipemia Affects
-| Analyte | Direction | Mild | Moderate | Severe |
-|---------|-----------|------|----------|--------|
-| Sodium | ↓ Falsely decreased | Accept | Flag | Reject |
-| Triglycerides | ↑ Falsely elevated | Flag | Reject | Reject |
-| Total protein | ↑ Falsely elevated | Accept | Flag | Reject |
-| Amylase | ↑ Falsely elevated | Accept | Flag | Reject |
+Decision: Accept, flag, or reject for each analyte based on HIL level.
 
-## Quick Start
+Zero-dependency Python stdlib implementation.
+Author: Dr. Abu Suraih Sakhri
+License: MIT
+
+---
+
+## ⚙️ Key Capabilities & Algorithmic Modules
+
+### 🔬 Core Algorithmic & Evaluation Engines
+
+- **`CorrectionResult`**: Result of an analyte correction computation.
+- **`HILCorrectionEngine`**: Applies published correction formulas to analyte values when HIL indices
+indicate pre-analytical interference.
+- **`HILReading`**: A single HIL index reading with collection metadata.
+- **`SiteShiftStatistics`**: Statistical summary for a site/shift combination.
+- **`TrendReport`**: Aggregated trend report for HIL indices.
+- **`HILTrendTracker`**: Tracks and analyzes HIL index trends by collection site and phlebotomy shift
+to identify systemic pre-analytical issues.
+
+---
+
+## 📐 Mathematical Formulation & Logic
+
+```text
+  Applies published correction formulas to provide corrected analyte values when
+  correction_formula: str
+  "formula_type": "linear_subtraction",
+  "formula_type": "flag_only",
+  Applies published correction formulas to analyte values when HIL indices
+```
+
+---
+
+## 💻 CLI Quickstart & Usage
+
+### 1. Guided Interactive Mode
+```bash
+python cli.py
+```
+
+### 2. Direct Parameterized Evaluation
+```bash
+python cli.py --hemolysis <value> --icterus <value> --lipemia <value> --analyte <value>
+```
+
+### Parameter Reference
+- `--hemolysis`: Specifies input measurement or parameter value.
+- `--icterus`: Specifies input measurement or parameter value.
+- `--lipemia`: Specifies input measurement or parameter value.
+- `--analyte`: Specifies input measurement or parameter value.
+- `--analytes`: Specifies input measurement or parameter value.
+- `--input`: Specifies input measurement or parameter value.
+- `--output`: Specifies input measurement or parameter value.
+
+### Input Data Schema
+
+| Field | Description | Requirement |
+|:------|:------------|:------------|
+| `case_id` | Parameter / observation metric | Required |
+| `patient_synthetic_id` | Parameter / observation metric | Required |
+| `metric_primary` | Parameter / observation metric | Required |
+| `metric_secondary` | Parameter / observation metric | Required |
+| `is_stat` | Parameter / observation metric | Required |
+| `status_flag` | Parameter / observation metric | Required |
+
+---
+
+## 🛡️ Security & Enterprise Architecture
+
+* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
+* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
+* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
+* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
+* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+
+---
+
+## 🧪 Testing & Verification
+
+Run the automated test suite:
 
 ```bash
-# Interpret HIL indices
-python cli.py interpret --hemolysis 150 --icterus 25 --lipemia 300
-
-# Assess impact on specific analyte
-python cli.py analyte --analyte potassium --hemolysis 150
-
-# Full specimen assessment
-python cli.py specimen --hemolysis 150 --icterus 25 --lipemia 300
-
-# List all analytes with interference data
-python cli.py list-analytes
-
-# Batch processing
-python cli.py batch -i specimens.csv -o results.csv
+pytest -v
 ```
 
-### Python API
-
-```python
-from hil_sentinel import assess_specimen, assess_analyte_impact
-
-# Full specimen assessment
-result = assess_specimen(hemolysis=300, icterus=25, lipemia=100)
-print(result["rejected_analytes"])   # ['potassium', 'ldh', 'haptoglobin']
-print(result["flagged_analytes"])    # ['ast', 'bilirubin', 'troponin', ...]
-
-# Single analyte
-impact = assess_analyte_impact("potassium", hemolysis=150)
-print(impact["action"])  # "flag"
-```
-
-## Running Tests
+Execute high-throughput batch simulation benchmarks:
 
 ```bash
-python -m pytest test_hil_sentinel.py -v
+python simulator.py --tasks 1000 --concurrency 8
 ```
 
-## License
+---
 
-MIT License.
+## 🐳 Container Deployment
+
+```bash
+docker build -t hemolysis-icterus-lipemia-agent .
+docker run -p 8000:8000 hemolysis-icterus-lipemia-agent
+```
