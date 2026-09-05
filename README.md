@@ -1,7 +1,7 @@
 # Hemolysis Icterus Lipemia Agent
 
-> **Domain:** Clinical Decision Support & Biomedical Computing  
-> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks`
+> **Domain:** Clinical Decision Support & Biomedical Computing
+> **Reference Guidelines & Standards:** CLSI C56-A, CLSI EP28-A3, Westgard Multi-Rule QC, ISO 15189
 
 <div align="center">
 
@@ -18,62 +18,101 @@
 
 ## 📖 What It Does
 
-**Hemolysis Icterus Lipemia Agent** is an advanced analytical and computational platform implementing Spectrophotometric HIL-Index Interference Arbiter.
+**Hemolysis Icterus Lipemia Agent** is a clinical decision support platform implementing a Spectrophotometric HIL-Index Interference Arbiter.
 
-HIL (Hemolysis, Icterus, Lipemia) Index Interpreter.
+Interprets spectrophotometric interference indices (Hemolysis, Icterus, Lipemia) and determines their impact on clinical analyte results.
 
-Interprets spectrophotometric interference indices and determines
-their impact on clinical analyte results.
+### HIL Index Classifications
 
-HIL Index values (semi-quantitative, 0-100+ scale):
-  Hemolysis (H-index):
-    Normal: 0-49, Mild: 50-100, Moderate: 100-250, Severe: >250
-  Icterus (I-index):
-    Normal: 0-19, Mild: 20-40, Moderate: 40-60, Severe: >60
-  Lipemia (L-index):
-    Normal: 0-99, Mild: 100-200, Moderate: 200-500, Severe: >500
+**Hemolysis (H-index):**
+| Classification | Range |
+|:---------------|:------|
+| Normal | 0-49 |
+| Mild | 50-100 |
+| Moderate | 101-250 |
+| Severe | >250 |
 
-Affected analytes by HIL interference:
-  Hemolysis affects: K+, LDH, AST, ALT, bilirubin, haptoglobin, troponin
-  Icterus affects: creatinine (Jaffe), triglycerides, uric acid
-  Lipemia affects: sodium (indirect), triglycerides, total protein, amylase
+**Icterus (I-index):**
+| Classification | Range |
+|:---------------|:------|
+| Normal | 0-19 |
+| Mild | 20-40 |
+| Moderate | 41-60 |
+| Severe | >60 |
 
-Decision: Accept, flag, or reject for each analyte based on HIL level.
+**Lipemia (L-index):**
+| Classification | Range |
+|:---------------|:------|
+| Normal | 0-99 |
+| Mild | 100-200 |
+| Moderate | 201-500 |
+| Severe | >500 |
 
-Zero-dependency Python stdlib implementation.
-Author: Dr. Abu Suraih Sakhri
-License: MIT
+### Affected Analytes
+
+- **Hemolysis affects:** K+, LDH, AST, ALT, bilirubin, haptoglobin, troponin
+- **Icterus affects:** creatinine (Jaffe), triglycerides, uric acid
+- **Lipemia affects:** sodium (indirect), triglycerides, total protein, amylase
+
+### Decision Logic
+
+For each analyte, the system determines: **Accept**, **Flag**, or **Reject** based on HIL interference level.
 
 ---
 
-## ⚙️ Key Capabilities & Algorithmic Modules
+## ⚙️ Key Modules
 
-### 🔬 Core Algorithmic & Evaluation Engines
+### Core HIL Engine (`hil_sentinel.py`)
+- `classify_hil_index()` — Classifies HIL index values into severity levels
+- `interpret_hil_indices()` — Interprets all three HIL indices with overall specimen quality
+- `assess_analyte_impact()` — Assesses interference impact on specific analytes
+- `assess_specimen()` — Complete specimen assessment with per-analyte decisions
+- `process_batch()` — Batch CSV processing for multiple specimens
 
-- **`CorrectionResult`**: Result of an analyte correction computation.
-- **`HILCorrectionEngine`**: Applies published correction formulas to analyte values when HIL indices
-indicate pre-analytical interference.
-- **`HILReading`**: A single HIL index reading with collection metadata.
-- **`SiteShiftStatistics`**: Statistical summary for a site/shift combination.
-- **`TrendReport`**: Aggregated trend report for HIL indices.
-- **`HILTrendTracker`**: Tracks and analyzes HIL index trends by collection site and phlebotomy shift
-to identify systemic pre-analytical issues.
+### HIL Correction Engine (`hil_correction_engine.py`)
+- `HILCorrectionEngine` — Applies published correction formulas to analyte values
+- Supports linear subtraction and flag-only correction types
+- Covers K+, LDH, AST, ALT, troponin, bilirubin, creatinine, cholesterol, triglycerides, hemoglobin, sodium
+
+### HIL Trend Tracker (`hil_trend_tracker.py`)
+- `HILTrendTracker` — Tracks HIL index trends by collection site and phlebotomy shift
+- Identifies systemic pre-analytical issues across collection locations
+- Generates box plot data for visualization
+
+### Specimen Quality Scorer (`specimen_quality_scorer.py`)
+- `SpecimenQualityScorer` — Computes composite Specimen Quality Score (SQS)
+- Factors: HIL interference, collection-to-centrifugation time, storage conditions
+- Grades: EXCELLENT, GOOD, ACCEPTABLE, MARGINAL, REJECTED
+
+### Enterprise Agent Suite (`agents/`)
+- `PHIGuard` — Zero-PHI outbound interceptor with regex pattern detection
+- `AuditTrail` / `AuditLogger` — HMAC-SHA256 tamper-evident audit trail
+- `SystemSupervisor` — Multi-worker orchestration with consensus dossier generation
+- `LLMFactory` — Air-gapped LLM adapter (Ollama, Claude, OpenAI, mock)
 
 ---
 
-## 📐 Mathematical Formulation & Logic
+## 💻 Installation
 
-```text
-  Applies published correction formulas to provide corrected analyte values when
-  correction_formula: str
-  "formula_type": "linear_subtraction",
-  "formula_type": "flag_only",
-  Applies published correction formulas to analyte values when HIL indices
+```bash
+# Clone the repository
+git clone https://github.com/abusuraihsakhri/hemolysis-icterus-lipemia-agent.git
+cd hemolysis-icterus-lipemia-agent
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -e .
+
+# For development (testing, FastAPI server)
+pip install -e ".[dev]"
 ```
 
 ---
 
-## 💻 CLI Quickstart & Usage
+## 🚀 Usage
 
 ### 1. Guided Interactive Mode
 ```bash
@@ -82,47 +121,71 @@ python cli.py
 
 ### 2. Direct Parameterized Evaluation
 ```bash
-python cli.py --hemolysis <value> --icterus <value> --lipemia <value> --analyte <value>
+python cli.py interpret --hemolysis 150 --icterus 25 --lipemia 300
+python cli.py analyte --analyte potassium --hemolysis 150
+python cli.py specimen --hemolysis 150 --icterus 25 --lipemia 300
+python cli.py list-analytes
 ```
 
-### Parameter Reference
-- `--hemolysis`: Specifies input measurement or parameter value.
-- `--icterus`: Specifies input measurement or parameter value.
-- `--lipemia`: Specifies input measurement or parameter value.
-- `--analyte`: Specifies input measurement or parameter value.
-- `--analytes`: Specifies input measurement or parameter value.
-- `--input`: Specifies input measurement or parameter value.
-- `--output`: Specifies input measurement or parameter value.
+### 3. Batch CSV Processing
+```bash
+python cli.py batch -i specimens.csv -o results.csv
+```
 
-### Input Data Schema
+### 4. HIL Correction Engine
+```bash
+python hil_correction_engine.py --analyte K --raw 6.8 --hil-type H --hil-value 20
+python hil_correction_engine.py --list
+```
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `case_id` | Parameter / observation metric | Required |
-| `patient_synthetic_id` | Parameter / observation metric | Required |
-| `metric_primary` | Parameter / observation metric | Required |
-| `metric_secondary` | Parameter / observation metric | Required |
-| `is_stat` | Parameter / observation metric | Required |
-| `status_flag` | Parameter / observation metric | Required |
+### 5. HIL Trend Tracker
+```bash
+python hil_trend_tracker.py --input readings.csv --box-plot
+python hil_trend_tracker.py --input readings.csv --period-start 2024-01-01 --period-end 2024-12-31
+```
+
+### 6. Specimen Quality Scorer
+```bash
+python specimen_quality_scorer.py --accession ACC-001 --hil-h 150 --collection-time "2024-01-15T08:30:00Z"
+```
+
+### 7. FastAPI REST Server
+```bash
+python -m hemolysis_icterus_lipemia_agent.cli serve --host 0.0.0.0 --port 8000
+```
+
+### 8. Enterprise Agent CLI
+```bash
+python -m hemolysis_icterus_lipemia_agent.cli audit --case-id CASE-001 --primary 26.2
+python -m hemolysis_icterus_lipemia_agent.cli chat "system status"
+python -m hemolysis_icterus_lipemia_agent.cli verify-audit
+```
 
 ---
 
-## 🛡️ Security & Enterprise Architecture
+## 🛡️ Security Architecture
 
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
+* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers.
 * **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+* **Configurable Audit Secret:** Set `AUDIT_SECRET_KEY` environment variable for production deployments (generates ephemeral key with warning if unset).
+* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances, Claude, GPT-4o, and deterministic test mocks.
 
 ---
 
-## 🧪 Testing & Verification
+## 🧪 Testing
 
-Run the automated test suite:
+Run the complete test suite:
 
 ```bash
 pytest -v
+```
+
+Run specific test modules:
+
+```bash
+pytest test_hil_sentinel.py -v          # Core HIL engine tests (46 tests)
+pytest tests/test_enrichment.py -v      # Enrichment module tests
+pytest tests/test_hemolysis_icterus_lipemia_agent.py -v  # Enterprise agent tests
 ```
 
 Execute high-throughput batch simulation benchmarks:
@@ -135,7 +198,61 @@ python simulator.py --tasks 1000 --concurrency 8
 
 ## 🐳 Container Deployment
 
+### Docker
 ```bash
 docker build -t hemolysis-icterus-lipemia-agent .
-docker run -p 8000:8000 hemolysis-icterus-lipemia-agent
+docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret-key hemolysis-icterus-lipemia-agent
 ```
+
+### Docker Compose
+```bash
+# Set your audit secret key
+export AUDIT_SECRET_KEY=your-production-secret-key
+
+docker-compose up -d
+```
+
+---
+
+## 📁 Project Structure
+
+```
+hemolysis-icterus-lipemia-agent/
+├── hil_sentinel.py                  # Core HIL index interpreter
+├── hil_correction_engine.py         # Analyte correction formulas
+├── hil_trend_tracker.py             # Site/shift trend analysis
+├── specimen_quality_scorer.py       # Composite quality scoring
+├── cli.py                           # Main CLI entry point
+├── simulator.py                     # High-throughput simulation
+├── enrichment.py                    # Enrichment feature suite
+├── agents/                          # Enterprise agent framework
+│   ├── base.py                      # PHI guard, audit trail
+│   ├── models.py                    # Pydantic schemas
+│   ├── supervisor.py                # Multi-worker orchestrator
+│   ├── workers.py                   # Specialized QC workers
+│   ├── api.py                       # FastAPI endpoints
+│   ├── learning.py                  # Bayesian calibration
+│   ├── metrics.py                   # Prometheus metrics
+│   └── streamer.py                  # WebSocket telemetry
+├── hemolysis_icterus_lipemia_agent/ # Package distribution
+│   ├── cli.py                       # Package CLI
+│   ├── server.py                    # FastAPI app factory
+│   ├── agents.py                    # Coordinator & sub-agents
+│   ├── engine.py                    # Clinical domain rules
+│   └── models.py                    # Clinical data models
+├── tests/                           # Test suite
+├── web/                             # Operations console (HTML)
+├── docker-compose.yml               # Container orchestration
+├── pyproject.toml                   # Package configuration
+└── README.md                        # This file
+```
+
+---
+
+## 📄 License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+**Author:** Dr. Abu Suraih Sakhri

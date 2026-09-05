@@ -7,6 +7,7 @@ import json
 import sys
 from .models import ClinicalCasePayload
 from .agents import HILCoordinator
+from agents.base import AuditLogger
 
 coordinator = HILCoordinator()
 
@@ -36,6 +37,9 @@ def main(argv=None):
     p_serve = subparsers.add_parser("serve", help="Launch FastAPI REST server")
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8000)
+
+    # Verify audit
+    subparsers.add_parser("verify-audit", help="Verify HMAC-SHA256 audit trail integrity")
 
     args = parser.parse_args(argv)
 
@@ -110,6 +114,13 @@ def main(argv=None):
         except ImportError:
             print("FastAPI / uvicorn not installed. Run 'pip install fastapi uvicorn'")
             return 1
+
+    if args.command == "verify-audit":
+        verified = AuditLogger.verify_integrity()
+        trail = AuditLogger.get_trail()
+        print(f"Audit trail integrity: {'VERIFIED' if verified else 'COMPROMISED'}")
+        print(f"Total audit blocks: {len(trail)}")
+        return 0
 
     return 0
 
