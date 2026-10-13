@@ -144,7 +144,7 @@ CORRECTION_FACTOR_TABLE: Dict[Tuple[str, str], Dict[str, Any]] = {
 
 class HILCorrectionEngine:
     """
-    Applies published correction formulas to analyte values when HIL indices
+    Demonstrates unvalidated correction coefficients for analyte values when HIL indices
     indicate pre-analytical interference.
     """
 
@@ -227,7 +227,7 @@ class HILCorrectionEngine:
             hil_index_value=hil_index_value,
             correction_factor=factor,
             correction_formula=formula_type,
-            confidence="LOW" if formula_type == "linear_subtraction" else entry.get("confidence", "MODERATE"),
+            confidence="LOW",
             correction_applied=correction_applied,
             notes=notes,
         )
@@ -243,7 +243,7 @@ class HILCorrectionEngine:
                 "factor": entry["factor"],
                 "description": entry["description"],
                 "reference": entry.get("reference", ""),
-                "confidence": entry.get("confidence", "MODERATE"),
+                "confidence": "LOW",
             })
         return results
 
