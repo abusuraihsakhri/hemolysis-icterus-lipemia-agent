@@ -85,3 +85,11 @@ def test_correction_invalid_indices_rejected(value):
     from hil_correction_engine import HILCorrectionEngine
     with pytest.raises(ValueError):
         HILCorrectionEngine().correct_analyte("K", 6.8, "H", value)
+
+
+def test_mock_does_not_claim_clinical_validation():
+    from agents.llm_factory import LLMFactory
+    reply = LLMFactory.create("mock").invoke("status")
+    assert "No clinical or scientific verification was performed" in reply
+    with pytest.raises(ValueError):
+        LLMFactory.create("openai")
