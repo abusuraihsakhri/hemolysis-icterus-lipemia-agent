@@ -28,6 +28,7 @@ License: MIT
 import argparse
 import csv
 import json
+import math
 import sys
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -257,8 +258,8 @@ def classify_hil_index(index_type: str, value: float) -> str:
         raise ValueError(f"Unknown index type '{index_type}'. Use: hemolysis, icterus, lipemia")
 
     thresholds = HIL_THRESHOLDS[key]
-    if value < 0:
-        raise ValueError(f"Index value must be non-negative, got {value}")
+    if not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+        raise ValueError(f"Index value must be a finite non-negative number, got {value}")
 
     if value <= thresholds["normal_max"]:
         return "Normal"
@@ -318,7 +319,9 @@ def interpret_hil_indices(
         if l_class in ("Moderate", "Severe"):
             result["quality_issues"].append(f"Lipemia: {l_class} (L-index {lipemia})")
 
-    if result["quality_issues"]:
+    if hemolysis is None and icterus is None and lipemia is None:
+        result["specimen_quality"] = "Not assessed"
+    elif result["quality_issues"]:
         result["specimen_quality"] = "Compromised"
 
     return result
@@ -340,12 +343,15 @@ def assess_analyte_impact(
     Returns action (accept/flag/reject) and details for each HIL type.
     """
     analyte_key = analyte.strip().lower().replace(" ", "_")
+    for hil_type, hil_value in (("hemolysis", hemolysis), ("icterus", icterus), ("lipemia", lipemia)):
+        if hil_value is not None:
+            classify_hil_index(hil_type, hil_value)
 
     if analyte_key not in ANALYTE_INTERFERENCE:
         return {
             "analyte": analyte,
-            "action": "accept",
-            "details": f"No known HIL interference for {analyte}.",
+            "action": "not_assessed",
+            "details": f"No analyte-specific interference rules are configured for {analyte}.",
             "interferences": [],
         }
 
@@ -384,6 +390,9 @@ def assess_analyte_impact(
 
         impacts.append(impact)
 
+    if not impacts:
+        worst_action = "not_assessed"
+
     return {
         "analyte": analyte,
         "action": worst_action,
@@ -392,7 +401,7 @@ def assess_analyte_impact(
             f"Overall action for {analyte}: {worst_action.upper()}. "
             + "; ".join(f"{i['hil_type']}: {i['reason']}" for i in impacts)
             if impacts else
-            f"No HIL values provided for {analyte} interference assessment."
+            f"Relevant HIL index not measured for {analyte}; cannot assess interference."
         ),
     }
 
@@ -428,6 +437,7 @@ def assess_specimen(
     rejected_analytes = []
     flagged_analytes = []
     accepted_analytes = []
+    unassessed_analytes = []
 
     for a in analytes:
         impact = assess_analyte_impact(a, hemolysis, icterus, lipemia)
@@ -436,22 +446,26 @@ def assess_specimen(
             rejected_analytes.append(a)
         elif impact["action"] == "flag":
             flagged_analytes.append(a)
-        else:
+        elif impact["action"] == "accept":
             accepted_analytes.append(a)
+        else:
+            unassessed_analytes.append(a)
 
     return {
         "hil_indices": hil_result,
         "analyte_count": len(analytes),
         "accepted_analytes": accepted_analytes,
+        "unassessed_analytes": unassessed_analytes,
         "flagged_analytes": flagged_analytes,
         "rejected_analytes": rejected_analytes,
         "analyte_impacts": analyte_impacts,
         "overall_recommendation": (
             f"REJECT specimen for: {', '.join(rejected_analytes)}. "
             f"FLAG with caution: {', '.join(flagged_analytes)}. "
-            f"ACCEPT: {', '.join(accepted_analytes)}."
-            if (rejected_analytes or flagged_analytes) else
-            "All analytes acceptable. No HIL interference detected."
+            f"ACCEPT (example rules): {', '.join(accepted_analytes)}. "
+            f"NOT ASSESSED: {', '.join(unassessed_analytes)}."
+            if (rejected_analytes or flagged_analytes or unassessed_analytes) else
+            "No interference detected under the example rules for the measured HIL indices."
         ),
     }
 

@@ -13,6 +13,7 @@ import datetime
 import json
 import math
 import uuid
+from statistics import median
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from typing import Dict, Any, List, Optional, Tuple
@@ -70,7 +71,7 @@ class TrendReport:
         return asdict(self)
 
 
-# Default HIL flagging thresholds (CLSI-based)
+# Illustrative flag thresholds only; verify for each analyzer and assay.
 DEFAULT_HIL_THRESHOLDS = {
     "H": 100,   # Hemolysis index flag threshold
     "I": 20,    # Icterus index flag threshold
@@ -148,7 +149,7 @@ class HILTrendTracker:
             flag_rate=round(flag_rate, 2),
         )
 
-    def get_site_shift_distributions(self) -> Dict[str, Dict[str, Dict[str, SiteShiftStatistics]]]:
+    def get_site_shift_distributions(self, readings: Optional[List[HILReading]] = None) -> Dict[str, Dict[str, Dict[str, SiteShiftStatistics]]]:
         """
         Compute per-site/shift distributions for each HIL index type.
 
@@ -159,7 +160,7 @@ class HILTrendTracker:
             lambda: defaultdict(lambda: defaultdict(list))
         )
 
-        for r in self.readings:
+        for r in (self.readings if readings is None else readings):
             buckets[r.collection_site][r.shift]["H"].append(r.hil_h)
             buckets[r.collection_site][r.shift]["I"].append(r.hil_i)
             buckets[r.collection_site][r.shift]["L"].append(r.hil_l)
@@ -198,7 +199,7 @@ class HILTrendTracker:
         if period_end:
             filtered = [r for r in filtered if r.collection_date <= period_end]
 
-        distributions = self.get_site_shift_distributions()
+        distributions = self.get_site_shift_distributions(filtered)
 
         all_stats = []
         outlier_sites = []
@@ -237,26 +238,34 @@ class HILTrendTracker:
         Returns:
             Dict with box plot data per site/shift
         """
-        distributions = self.get_site_shift_distributions()
-        plot_data = {}
-
-        for s, shifts in distributions.items():
-            if site and s != site:
+        # Actual observed quartiles (median-of-halves), not standard deviation
+        # approximations, which can create impossible values outside the data.
+        buckets = defaultdict(list)
+        for reading in self.readings:
+            if site is not None and reading.collection_site != site:
                 continue
-            for shift, hil_types in shifts.items():
-                key = f"{s}|{shift}"
-                plot_data[key] = {}
-                for hil_type, stats in hil_types.items():
-                    plot_data[key][hil_type] = {
-                        "min": stats.min_val,
-                        "q1": stats.median - stats.std_dev * 0.5,
-                        "median": stats.median,
-                        "q3": stats.median + stats.std_dev * 0.5,
-                        "max": stats.max_val,
-                        "mean": stats.mean,
-                        "p95": stats.p95,
-                    }
+            for hil_type, value in (("H", reading.hil_h), ("I", reading.hil_i), ("L", reading.hil_l)):
+                buckets[(reading.collection_site, reading.shift, hil_type)].append(value)
 
+        plot_data = {}
+        for (collection_site, shift, hil_type), values in buckets.items():
+            values = sorted(values)
+            n = len(values)
+            low = values[:n // 2]
+            high = values[(n + 1) // 2:]
+            q1 = median(low) if low else median(values)
+            q3 = median(high) if high else median(values)
+            stats = self._compute_stats(values, hil_type)
+            key = f"{collection_site}|{shift}"
+            plot_data.setdefault(key, {})[hil_type] = {
+                "min": stats.min_val,
+                "q1": q1,
+                "median": stats.median,
+                "q3": q3,
+                "max": stats.max_val,
+                "mean": stats.mean,
+                "p95": stats.p95,
+            }
         return plot_data
 
 

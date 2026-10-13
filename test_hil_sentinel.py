@@ -154,10 +154,10 @@ class TestAssessAnalyteImpact(unittest.TestCase):
         result = assess_analyte_impact("triglycerides", lipemia=600)
         self.assertEqual(result["action"], "reject")
 
-    def test_unknown_analyte_accept(self):
-        """Unknown analyte should be accepted (no known interference)."""
+    def test_unknown_analyte_not_assessed(self):
+        """Unknown rules must not imply clinical acceptance."""
         result = assess_analyte_impact("troponin_t", hemolysis=300)
-        self.assertEqual(result["action"], "accept")
+        self.assertEqual(result["action"], "not_assessed")
 
     def test_ast_mild_hemolysis_accept(self):
         """AST with mild hemolysis should be accepted."""

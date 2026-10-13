@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -17,11 +17,21 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["pydantic>=2,<3"]
+
+[project.optional-dependencies]
+server = ["fastapi>=0.110,<1", "uvicorn>=0.27,<1"]
+dev = ["pytest>=7,<10", "httpx>=0.27,<1", "fastapi>=0.110,<1", "uvicorn>=0.27,<1"]
+
+[tool.setuptools]
+py-modules = ["hil_sentinel", "hil_correction_engine", "hil_trend_tracker", "specimen_quality_scorer", "enrichment", "simulator", "cli"]
+
+[tool.setuptools.packages.find]
+include = ["agents*", "hemolysis_icterus_lipemia_agent*"]
 
 [project.scripts]
 hemolysis-icterus-lipemia-engine = "hemolysis_icterus_lipemia_agent.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abusuraihsakhri/hemolysis-icterus-lipemia-engine"
+Homepage = "https://github.com/abusuraihsakhri/hemolysis-icterus-lipemia-agent"
 Repository = "https://github.com/abusuraihsakhri/hemolysis-icterus-lipemia-engine.git"

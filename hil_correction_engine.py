@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 HIL Correction Engine: Analyte-Specific HIL Interference Correction Factors
-Applies published correction formulas to provide corrected analyte values when
+Provides experimental, unvalidated example correction coefficients for values when
 Hemolysis (H), Icterus (I), or Lipemia (L) indices indicate interference.
 
 Domain: Laboratory Medicine — Pre-Analytical Quality
@@ -37,7 +37,8 @@ class CorrectionResult:
         return asdict(self)
 
 
-# Published correction factor table: (analyte_code, hil_type) -> (formula_type, factor, description)
+# EXPERIMENTAL DEMONSTRATION FACTORS ONLY: not validated for clinical reporting.
+# Literature pointers below do not establish universal coefficients.
 CORRECTION_FACTOR_TABLE: Dict[Tuple[str, str], Dict[str, Any]] = {
     # Hemolysis corrections
     ("K", "H"): {
@@ -143,12 +144,14 @@ CORRECTION_FACTOR_TABLE: Dict[Tuple[str, str], Dict[str, Any]] = {
 
 class HILCorrectionEngine:
     """
-    Applies published correction formulas to analyte values when HIL indices
+    Demonstrates unvalidated correction coefficients for analyte values when HIL indices
     indicate pre-analytical interference.
     """
 
-    def __init__(self, custom_table: Optional[Dict] = None):
-        self.correction_table = custom_table or CORRECTION_FACTOR_TABLE
+    def __init__(self, custom_table: Optional[Dict] = None,
+                 enable_experimental_corrections: bool = False):
+        self.correction_table = custom_table if custom_table is not None else CORRECTION_FACTOR_TABLE
+        self.enable_experimental_corrections = enable_experimental_corrections
 
     def correct_analyte(
         self,
@@ -169,6 +172,8 @@ class HILCorrectionEngine:
         Returns:
             CorrectionResult with corrected value and confidence assessment
         """
+        if not math.isfinite(raw_value) or not math.isfinite(hil_index_value) or hil_index_value < 0:
+            raise ValueError("Raw value must be finite and HIL index must be finite and non-negative")
         key = (analyte_code.upper(), hil_index_type.upper())
         entry = self.correction_table.get(key)
 
@@ -200,6 +205,8 @@ class HILCorrectionEngine:
         elif formula_type == "flag_only":
             notes.append(entry["description"])
             notes.append("No numerical correction possible. Flag for manual review.")
+        elif formula_type == "linear_subtraction" and not self.enable_experimental_corrections:
+            notes.append("Numerical correction disabled: the bundled coefficients are illustrative and not method-validated.")
         elif formula_type == "linear_subtraction":
             correction_amount = hil_index_value * factor
             corrected_value = raw_value - correction_amount
@@ -220,7 +227,7 @@ class HILCorrectionEngine:
             hil_index_value=hil_index_value,
             correction_factor=factor,
             correction_formula=formula_type,
-            confidence=entry.get("confidence", "MODERATE"),
+            confidence="LOW",
             correction_applied=correction_applied,
             notes=notes,
         )
@@ -236,7 +243,7 @@ class HILCorrectionEngine:
                 "factor": entry["factor"],
                 "description": entry["description"],
                 "reference": entry.get("reference", ""),
-                "confidence": entry.get("confidence", "MODERATE"),
+                "confidence": "LOW",
             })
         return results
 
@@ -271,19 +278,24 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="HIL Correction Engine")
-    parser.add_argument("--analyte", type=str, required=True, help="Analyte code (e.g., K, AST, CR_JAFFE)")
-    parser.add_argument("--raw", type=float, required=True, help="Raw measured value")
-    parser.add_argument("--hil-type", type=str, required=True, choices=["H", "I", "L"], help="HIL index type")
-    parser.add_argument("--hil-value", type=float, required=True, help="HIL index value")
+    parser.add_argument("--analyte", type=str, help="Analyte code (e.g., K, AST, CR_JAFFE)")
+    parser.add_argument("--raw", type=float, help="Raw measured value")
+    parser.add_argument("--hil-type", type=str, choices=["H", "I", "L"], help="HIL index type")
+    parser.add_argument("--hil-value", type=float, help="HIL index value")
+    parser.add_argument("--experimental-corrections", action="store_true",
+                        help="Opt in to unvalidated numerical demonstration coefficients; never for clinical use")
     parser.add_argument("--list", action="store_true", help="List all available corrections")
     args = parser.parse_args()
 
-    engine = HILCorrectionEngine()
+    engine = HILCorrectionEngine(enable_experimental_corrections=args.experimental_corrections)
 
     if args.list:
         corrections = engine.get_available_corrections()
         print(json.dumps(corrections, indent=2))
         return
+
+    if any(v is None for v in (args.analyte, args.raw, args.hil_type, args.hil_value)):
+        parser.error("--analyte, --raw, --hil-type and --hil-value are required unless --list is used")
 
     result = engine.correct_analyte(args.analyte, args.raw, args.hil_type, args.hil_value)
     print(json.dumps(result.to_dict(), indent=2))
