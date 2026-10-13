@@ -31,7 +31,7 @@ python cli.py interpret --hemolysis 150 --icterus 25 --lipemia 300
 python cli.py analyte --analyte potassium --hemolysis 150
 python cli.py specimen --hemolysis 150 --icterus 25 --lipemia 300
 python cli.py list-analytes
-python cli.py batch -i sample.csv -o results.csv
+python cli.py batch -i sample_hil.csv -o results.csv
 ```
 
 For package-level audit, chat, and CSV-batch workflows:
