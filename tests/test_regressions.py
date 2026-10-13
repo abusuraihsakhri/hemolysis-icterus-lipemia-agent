@@ -123,3 +123,22 @@ def test_box_plot_uses_observed_quartiles():
     assert h_data["median"] == 0
     assert h_data["q3"] == 50
     assert 0 <= h_data["q1"] <= h_data["median"] <= h_data["q3"] <= h_data["max"]
+
+
+def test_fastapi_health_and_audit_smoke():
+    from fastapi.testclient import TestClient
+    from hemolysis_icterus_lipemia_agent.server import create_app
+    app = create_app()
+    assert app is not None
+    client = TestClient(app)
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert health.json()["status"] == "HEALTHY"
+    audit = client.post("/api/audit", json={
+        "case_id": "SYNTH-API-SMOKE", "patient_synthetic_id": "SYNTH-ONLY",
+        "primary_metric": 1, "secondary_metric": 0,
+        "status_flag": "NOMINAL", "is_stat": False
+    })
+    assert audit.status_code == 200
+    assert audit.json()["case_id"] == "SYNTH-API-SMOKE"
+    assert audit.json()["total_alerts"] == 0
