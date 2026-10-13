@@ -93,3 +93,33 @@ def test_mock_does_not_claim_clinical_validation():
     assert "No clinical or scientific verification was performed" in reply
     with pytest.raises(ValueError):
         LLMFactory.create("openai")
+
+
+def test_trend_filter_applies_to_statistics():
+    from hil_trend_tracker import HILTrendTracker, HILReading
+    tracker = HILTrendTracker()
+    for year, h in ((2024, 10), (2025, 200)):
+        tracker.add_reading(HILReading(
+            reading_id=str(year), collection_site="Lab A", shift="DAY",
+            hil_h=h, hil_i=0, hil_l=0, collection_date=f"{year}-01-01"
+        ))
+    report = tracker.generate_trend_report(period_start="2025-01-01")
+    assert report.total_readings == 1
+    h_stats = next(x for x in report.site_shift_stats if x.hil_type == "H")
+    assert h_stats.count == 1
+    assert h_stats.mean == 200
+
+
+def test_box_plot_uses_observed_quartiles():
+    from hil_trend_tracker import HILTrendTracker, HILReading
+    tracker = HILTrendTracker()
+    for idx, h in enumerate((0, 0, 0, 100)):
+        tracker.add_reading(HILReading(
+            reading_id=str(idx), collection_site="Lab A", shift="DAY",
+            hil_h=h, hil_i=0, hil_l=0, collection_date="2025-01-01"
+        ))
+    h_data = tracker.get_box_plot_data()["Lab A|DAY"]["H"]
+    assert h_data["q1"] == 0
+    assert h_data["median"] == 0
+    assert h_data["q3"] == 50
+    assert 0 <= h_data["q1"] <= h_data["median"] <= h_data["q3"] <= h_data["max"]
