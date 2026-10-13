@@ -1,258 +1,86 @@
-# Hemolysis Icterus Lipemia Agent
+# Hemolysis–Icterus–Lipemia (HIL) Index Interpreter
 
-> **Domain:** Clinical Decision Support & Biomedical Computing
-> **Reference Guidelines & Standards:** CLSI C56-A, CLSI EP28-A3, Westgard Multi-Rule QC, ISO 15189
+A Python laboratory-medicine research utility for classifying HIL indices, screening example analyte-specific interference rules, and generating specimen summaries. It also contains experimental correction, trend, specimen-quality, agent, and API modules.
 
-<div align="center">
+**Not a validated clinical decision system.** HIL index units and interference limits depend on the analyzer, assay method, reagents, and local verification data. The bundled cutoffs and interference rules are examples only; they must not determine patient-result release, suppression, correction, or specimen rejection.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+## Browser application
 
-</div>
+The repository contains a browser-based interface at `web/index.html`. When GitHub Pages publishes the repository root, `index.html` redirects to that interface. It loads the local `hil_sentinel.py` module using [Pyodide](https://pyodide.org/) and executes the Python assessment **in the browser**, without a Python server.
 
----
+The first visit requires an internet connection to download Pyodide from a public CDN. The values entered in the form are processed locally, not sent to an application backend. The page supports individual H, I, and L inputs, optional analyte filtering, classifications, example actions, and JSON export. Browser-run Python is limited to the HIL index interpreter; FastAPI and the other server-side modules are not run in-browser.
 
-## 📖 What It Does
-
-**Hemolysis Icterus Lipemia Agent** is a clinical decision support platform implementing a Spectrophotometric HIL-Index Interference Arbiter.
-
-Interprets spectrophotometric interference indices (Hemolysis, Icterus, Lipemia) and determines their impact on clinical analyte results.
-
-### HIL Index Classifications
-
-**Hemolysis (H-index):**
-| Classification | Range |
-|:---------------|:------|
-| Normal | 0-49 |
-| Mild | 50-100 |
-| Moderate | 101-250 |
-| Severe | >250 |
-
-**Icterus (I-index):**
-| Classification | Range |
-|:---------------|:------|
-| Normal | 0-19 |
-| Mild | 20-40 |
-| Moderate | 41-60 |
-| Severe | >60 |
-
-**Lipemia (L-index):**
-| Classification | Range |
-|:---------------|:------|
-| Normal | 0-99 |
-| Mild | 100-200 |
-| Moderate | 201-500 |
-| Severe | >500 |
-
-### Affected Analytes
-
-- **Hemolysis affects:** K+, LDH, AST, ALT, bilirubin, haptoglobin, troponin
-- **Icterus affects:** creatinine (Jaffe), triglycerides, uric acid
-- **Lipemia affects:** sodium (indirect), triglycerides, total protein, amylase
-
-### Decision Logic
-
-For each analyte, the system determines: **Accept**, **Flag**, or **Reject** based on HIL interference level.
-
----
-
-## ⚙️ Key Modules
-
-### Core HIL Engine (`hil_sentinel.py`)
-- `classify_hil_index()` — Classifies HIL index values into severity levels
-- `interpret_hil_indices()` — Interprets all three HIL indices with overall specimen quality
-- `assess_analyte_impact()` — Assesses interference impact on specific analytes
-- `assess_specimen()` — Complete specimen assessment with per-analyte decisions
-- `process_batch()` — Batch CSV processing for multiple specimens
-
-### HIL Correction Engine (`hil_correction_engine.py`)
-- `HILCorrectionEngine` — Applies published correction formulas to analyte values
-- Supports linear subtraction and flag-only correction types
-- Covers K+, LDH, AST, ALT, troponin, bilirubin, creatinine, cholesterol, triglycerides, hemoglobin, sodium
-
-### HIL Trend Tracker (`hil_trend_tracker.py`)
-- `HILTrendTracker` — Tracks HIL index trends by collection site and phlebotomy shift
-- Identifies systemic pre-analytical issues across collection locations
-- Generates box plot data for visualization
-
-### Specimen Quality Scorer (`specimen_quality_scorer.py`)
-- `SpecimenQualityScorer` — Computes composite Specimen Quality Score (SQS)
-- Factors: HIL interference, collection-to-centrifugation time, storage conditions
-- Grades: EXCELLENT, GOOD, ACCEPTABLE, MARGINAL, REJECTED
-
-### Enterprise Agent Suite (`agents/`)
-- `PHIGuard` — Zero-PHI outbound interceptor with regex pattern detection
-- `AuditTrail` / `AuditLogger` — HMAC-SHA256 tamper-evident audit trail
-- `SystemSupervisor` — Multi-worker orchestration with consensus dossier generation
-- `LLMFactory` — Air-gapped LLM adapter (Ollama, Claude, OpenAI, mock)
-
----
-
-## 💻 Installation
+For local use, from the repository root:
 
 ```bash
-# Clone the repository
-git clone https://github.com/abusuraihsakhri/hemolysis-icterus-lipemia-agent.git
-cd hemolysis-icterus-lipemia-agent
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -e .
-
-# For development (testing, FastAPI server)
-pip install -e ".[dev]"
+python -m http.server 8080
+# Visit http://127.0.0.1:8080/
 ```
 
----
+Do not enter patient identifiers. The UI contains no claim of PHI de-identification or HIPAA compliance.
 
-## 🚀 Usage
+## Command-line usage
 
-### 1. Guided Interactive Mode
+Requires Python 3.9 or newer. Python 3.10–3.12 are covered by CI.
+
 ```bash
-python cli.py
-```
+python -m pip install -e ".[dev]"
+python -m pytest -v
 
-### 2. Direct Parameterized Evaluation
-```bash
 python cli.py interpret --hemolysis 150 --icterus 25 --lipemia 300
 python cli.py analyte --analyte potassium --hemolysis 150
 python cli.py specimen --hemolysis 150 --icterus 25 --lipemia 300
 python cli.py list-analytes
+python cli.py batch -i sample.csv -o results.csv
 ```
 
-### 3. Batch CSV Processing
-```bash
-python cli.py batch -i specimens.csv -o results.csv
-```
+For package-level audit, chat, and CSV-batch workflows:
 
-### 4. HIL Correction Engine
 ```bash
-python hil_correction_engine.py --analyte K --raw 6.8 --hil-type H --hil-value 20
-python hil_correction_engine.py --list
-```
-
-### 5. HIL Trend Tracker
-```bash
-python hil_trend_tracker.py --input readings.csv --box-plot
-python hil_trend_tracker.py --input readings.csv --period-start 2024-01-01 --period-end 2024-12-31
-```
-
-### 6. Specimen Quality Scorer
-```bash
-python specimen_quality_scorer.py --accession ACC-001 --hil-h 150 --collection-time "2024-01-15T08:30:00Z"
-```
-
-### 7. FastAPI REST Server
-```bash
-python -m hemolysis_icterus_lipemia_agent.cli serve --host 0.0.0.0 --port 8000
-```
-
-### 8. Enterprise Agent CLI
-```bash
-python -m hemolysis_icterus_lipemia_agent.cli audit --case-id CASE-001 --primary 26.2
-python -m hemolysis_icterus_lipemia_agent.cli chat "system status"
+python -m hemolysis_icterus_lipemia_agent.cli audit --case-id SYNTH-001
 python -m hemolysis_icterus_lipemia_agent.cli verify-audit
+python -m hemolysis_icterus_lipemia_agent.cli batch -i sample.csv -o results.csv
 ```
 
----
+These are distinct entry points: the root `cli.py` operates the HIL interpreter; the packaged CLI operates the separate generic agent workflow. Generic "primary" and "secondary" metrics are not equivalent to independent H, I, and L measurements.
 
-## 🛡️ Security Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Configurable Audit Secret:** Set `AUDIT_SECRET_KEY` environment variable for production deployments (generates ephemeral key with warning if unset).
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances, Claude, GPT-4o, and deterministic test mocks.
-
----
-
-## 🧪 Testing
-
-Run the complete test suite:
+## APIs and containers
 
 ```bash
-pytest -v
+python -m pip install -e ".[server]"
+python -m hemolysis_icterus_lipemia_agent.cli serve --host 127.0.0.1 --port 8000
+# GET http://127.0.0.1:8000/health
 ```
 
-Run specific test modules:
+The `agents.api` module also exposes a distinct agent API, accessible with `uvicorn agents.api:app --host 127.0.0.1 --port 8000`. These APIs are **not authenticated** and must not be publicly exposed or used for identifiable patient data without appropriate security engineering and validation.
+
+For Docker Compose, set a strong persistent `AUDIT_SECRET_KEY` before starting the service. Compose binds port 8000 to localhost.
 
 ```bash
-pytest test_hil_sentinel.py -v          # Core HIL engine tests (46 tests)
-pytest tests/test_enrichment.py -v      # Enrichment module tests
-pytest tests/test_hemolysis_icterus_lipemia_agent.py -v  # Enterprise agent tests
+export AUDIT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+docker compose up --build
 ```
 
-Execute high-throughput batch simulation benchmarks:
+## Research modules
 
-```bash
-python simulator.py --tasks 1000 --concurrency 8
-```
+- `hil_sentinel.py`: H/I/L classification, example analyte-specific actions, specimen evaluation, batch CSV.
+- `hil_correction_engine.py`: experimental coefficients and flag-only rules. **Numerical corrections are not validated across instruments or methods and must not be used clinically.**
+- `hil_trend_tracker.py`: site/shift summaries and box-plot data.
+- `specimen_quality_scorer.py`: example composite specimen-quality score.
+- `enrichment.py`: demonstration enrichment routines.
+- `agents/`: structured orchestration, regex-based identifier screening, and in-memory HMAC-chained audit records.
+- `hemolysis_icterus_lipemia_agent/`: packaged agent CLI and optional FastAPI service.
 
----
+Unknown analytes or missing relevant HIL measurements are reported as `not_assessed`, never silently interpreted as safe. Where an example rule reports accept/flag/reject, the decision is **illustrative**, not clinically authoritative.
 
-## 🐳 Container Deployment
+## Security and privacy
 
-### Docker
-```bash
-docker build -t hemolysis-icterus-lipemia-agent .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret-key hemolysis-icterus-lipemia-agent
-```
+The browser interface performs calculations locally and does not send entered HIL data to the application server. It downloads the Pyodide runtime from a third-party CDN and links to this public repository. The Python API includes regex-based identifier screening, which is **not sufficient to guarantee de-identification**. Audit logging is memory-resident and HMAC-chained but is not a durable, independently verified compliance system; set `AUDIT_SECRET_KEY` when audit continuity matters. Avoid uploading or sending patient-identifying information.
 
-### Docker Compose
-```bash
-# Set your audit secret key
-export AUDIT_SECRET_KEY=your-production-secret-key
+## Testing and compatibility
 
-docker-compose up -d
-```
+CI tests Python 3.10, 3.11, and 3.12 with pytest. Static JavaScript syntax is checked with Node when available. The Pyodide browser application targets modern browsers with WebAssembly support; actual browser runtime depends on the availability of the public CDN.
 
----
+## License
 
-## 📁 Project Structure
-
-```
-hemolysis-icterus-lipemia-agent/
-├── hil_sentinel.py                  # Core HIL index interpreter
-├── hil_correction_engine.py         # Analyte correction formulas
-├── hil_trend_tracker.py             # Site/shift trend analysis
-├── specimen_quality_scorer.py       # Composite quality scoring
-├── cli.py                           # Main CLI entry point
-├── simulator.py                     # High-throughput simulation
-├── enrichment.py                    # Enrichment feature suite
-├── agents/                          # Enterprise agent framework
-│   ├── base.py                      # PHI guard, audit trail
-│   ├── models.py                    # Pydantic schemas
-│   ├── supervisor.py                # Multi-worker orchestrator
-│   ├── workers.py                   # Specialized QC workers
-│   ├── api.py                       # FastAPI endpoints
-│   ├── learning.py                  # Bayesian calibration
-│   ├── metrics.py                   # Prometheus metrics
-│   └── streamer.py                  # WebSocket telemetry
-├── hemolysis_icterus_lipemia_agent/ # Package distribution
-│   ├── cli.py                       # Package CLI
-│   ├── server.py                    # FastAPI app factory
-│   ├── agents.py                    # Coordinator & sub-agents
-│   ├── engine.py                    # Clinical domain rules
-│   └── models.py                    # Clinical data models
-├── tests/                           # Test suite
-├── web/                             # Operations console (HTML)
-├── docker-compose.yml               # Container orchestration
-├── pyproject.toml                   # Package configuration
-└── README.md                        # This file
-```
-
----
-
-## 📄 License
-
-MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-**Author:** Dr. Abu Suraih Sakhri
+[MIT](LICENSE).
