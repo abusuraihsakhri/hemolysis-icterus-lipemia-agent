@@ -67,3 +67,21 @@ def test_web_app_has_executable_javascript():
         check = subprocess.run(["node", "--check", "-"], input=scripts[0],
                                text=True, capture_output=True, check=False)
         assert check.returncode == 0, check.stderr
+
+
+def test_unvalidated_corrections_are_opt_in():
+    from hil_correction_engine import HILCorrectionEngine
+    default = HILCorrectionEngine().correct_analyte("K", 6.8, "H", 20)
+    assert not default.correction_applied
+    assert default.corrected_value == 6.8
+    assert default.confidence == "LOW"
+    experimental = HILCorrectionEngine(enable_experimental_corrections=True).correct_analyte("K", 6.8, "H", 20)
+    assert experimental.correction_applied
+    assert experimental.corrected_value == 6.0
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -1.0])
+def test_correction_invalid_indices_rejected(value):
+    from hil_correction_engine import HILCorrectionEngine
+    with pytest.raises(ValueError):
+        HILCorrectionEngine().correct_analyte("K", 6.8, "H", value)
