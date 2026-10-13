@@ -64,7 +64,7 @@ docker compose up --build
 ## Research modules
 
 - `hil_sentinel.py`: H/I/L classification, example analyte-specific actions, specimen evaluation, batch CSV.
-- `hil_correction_engine.py`: experimental coefficients and flag-only rules. **Numerical corrections are not validated across instruments or methods and must not be used clinically.**
+- `hil_correction_engine.py`: experimental coefficients and flag-only rules. **Numerical corrections are not validated across instruments or methods and must not be used clinically.** Numerical correction is disabled by default; `--experimental-corrections` opts in for research calculations. `python hil_correction_engine.py --list` lists examples.
 - `hil_trend_tracker.py`: site/shift summaries and box-plot data.
 - `specimen_quality_scorer.py`: example composite specimen-quality score.
 - `enrichment.py`: demonstration enrichment routines.
